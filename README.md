@@ -41,16 +41,21 @@ data/
 
 ## Setup (Day 1)
 
-### 1. Environment
+### 1. Environment (Modern Python with `uv`)
 
 ```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create virtual environment with Python 3.11+
+uv venv --python 3.11
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 
 # Install dependencies
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
+
+**Why `uv`**: 10-100x faster than pip, built-in Python version management, better lockfile support, modern Python tooling standard.
 
 ### 2. Configuration
 

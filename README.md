@@ -67,7 +67,17 @@ cp .env.example .env
 # OPENAI_API_KEY=sk-...
 ```
 
-### 3. Run Tests
+### 3. Type Check & Lint
+
+```bash
+# Type check with ty (Astral's Rust-based type checker)
+uvx ty check
+
+# Lint with ruff
+ruff check week-1/
+```
+
+### 4. Run Tests
 
 ```bash
 # Run unit tests (ingestion, retrieval)
@@ -77,7 +87,7 @@ pytest week-1/test_rag.py -v
 pytest week-1/test_rag.py::TestIngestion::test_ingest_full_pipeline -v
 ```
 
-### 4. Test Modules Independently
+### 5. Test Modules Independently
 
 ```bash
 # Test ingestion

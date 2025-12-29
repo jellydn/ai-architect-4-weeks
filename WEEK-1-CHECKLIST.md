@@ -19,9 +19,9 @@
 
 ### Setup (90 min)
 - [ ] Create GitHub repo: `ai-architect-4weeks` (public, MIT license)
-- [ ] Initialize Python project with `uv`:
+- [ ] Initialize Python project with modern tooling stack:
   ```bash
-  # Install uv (if not already installed)
+  # Install uv (Astral's fast package manager)
   curl -LsSf https://astral.sh/uv/install.sh | sh
   
   # Create project with Python 3.11+
@@ -29,11 +29,19 @@
   source .venv/bin/activate  # or .venv\Scripts\activate on Windows
   
   # Install dependencies
-  uv pip install fastapi uvicorn python-dotenv langchain openai numpy pytest pytest-asyncio pydantic
+  uv pip install fastapi uvicorn python-dotenv langchain openai numpy pytest pytest-asyncio pydantic ruff
   
-  # (Alternative: use pyproject.toml + uv sync for reproducible builds)
+  # (Uses pyproject.toml for reproducible builds)
   ```
 - [ ] Create `.env` file with OpenAI API key
+- [ ] Verify modern tooling works:
+  ```bash
+  # Type check with ty (Astral's Rust-based type checker)
+  uvx ty check
+  
+  # Lint code with ruff
+  ruff check week-1/
+  ```
 - [ ] Create project structure:
   ```
   ai-architect-4weeks/

@@ -1,165 +1,209 @@
-# AI Architect: 4-Week Sprint
+# AI Architect: 4-Week Sprint - Week 1 Progress
 
-Production-grade AI system built in 4 weeks. Foundation to architecture.
+**Goal**: Build a working RAG system + architecture documentation.
 
-From RAG basics → production vector DB → evaluation & monitoring → fine-tuning & design decisions.
+## Status
 
-## What This Is
+**Branch**: `week-1`  
+**Progress**: Day 1 (Setup) - Complete  
+**Target**: Friday checkpoint with running API
 
-A **systematic, execution-focused plan** to develop AI Architect-level skills and a portfolio artifact. Not a tutorial. Not a course. A 4-week sprint ending with deployable code + architecture documentation + public proof.
+---
 
-**Goal**: Credibly apply for AI Architect / Senior AI Engineer roles.
+## What's Built
 
-## Quick Start
+### Project Structure
+```
+week-1/
+├── __init__.py
+├── main.py           # FastAPI server
+├── ingestion.py      # Document loading & chunking
+├── retrieval.py      # Embedding & vector search
+├── generation.py     # LLM-based answer generation
+└── test_rag.py       # Unit & integration tests
 
-```bash
-# Clone
-git clone https://github.com/jellydn/ai-architect-4-weeks
-cd ai-architect-4-weeks
+docs/
+├── architecture.md   # System design & diagrams
+└── trade-offs.md     # Design decisions & rationale
 
-# Setup (Week 1+)
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Run (when code is ready)
-docker-compose up
-
-# Query API
-curl -X POST http://localhost:8000/query \
-  -d '{"query": "What is RAG?"}' \
-  -H "Content-Type: application/json"
+data/
+└── sample.txt        # Sample document for testing
 ```
 
-## The Plan
+### Components
 
-| Week | Focus | Deliverable | Checkpoint |
-|------|-------|-------------|-----------|
-| **1** | RAG Foundation | Running RAG API + architecture diagram | Can explain why RAG, not fine-tuning |
-| **2** | Production RAG | Vector DB + reranking + caching + latency report | Can debug retrieval failures |
-| **3** | Eval & Monitoring | Golden dataset + metrics dashboard + SLO | Can answer: "How do we know it's working?" |
-| **4** | Architecture & Fine-Tuning | Fine-tuned model + system design v2 + public post | Can design an AI system from scratch |
+1. **DocumentIngester**: Load files, chunk with overlap, produce structured documents
+2. **RAGRetriever**: Generate embeddings, store in memory, retrieve by cosine similarity
+3. **RAGGenerator**: Prompt templating, LLM calls, answer generation
+4. **FastAPI Server**: HTTP endpoints for ingest and query
+
+---
+
+## Setup (Day 1)
+
+### 1. Environment
+
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 2. Configuration
+
+```bash
+# Copy example to .env and fill in your OpenAI API key
+cp .env.example .env
+
+# Edit .env with your keys
+# OPENAI_API_KEY=sk-...
+```
+
+### 3. Run Tests
+
+```bash
+# Run unit tests (ingestion, retrieval)
+pytest week-1/test_rag.py -v
+
+# Individual test
+pytest week-1/test_rag.py::TestIngestion::test_ingest_full_pipeline -v
+```
+
+### 4. Test Modules Independently
+
+```bash
+# Test ingestion
+cd week-1
+python ingestion.py
+
+# Test retrieval (requires OpenAI key)
+python retrieval.py
+
+# Test generation (requires OpenAI key)
+python generation.py
+```
+
+---
+
+## API Usage (When Ready)
+
+### Start Server
+
+```bash
+cd week-1
+python main.py
+
+# Server runs on http://localhost:8000
+# Docs at http://localhost:8000/docs
+```
+
+### Ingest Documents
+
+```bash
+curl -X POST http://localhost:8000/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"file_paths": ["data/sample.txt"]}'
+
+# Response:
+# {
+#   "status": "success",
+#   "chunks_created": 12,
+#   "files_processed": 1
+# }
+```
+
+### Query RAG System
+
+```bash
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is RAG and why is it useful?", "top_k": 3}'
+
+# Response:
+# {
+#   "answer": "RAG is retrieval-augmented generation...",
+#   "sources": ["data/sample.txt"],
+#   "latency_ms": 2145.3
+# }
+```
+
+### Health Check
+
+```bash
+curl http://localhost:8000/health
+```
+
+---
 
 ## Documentation
 
-- **[CONSTITUTION.md](CONSTITUTION.md)** — Core principles (architect-first, running code, evaluation-driven)
-- **[WEEK-1-CHECKLIST.md](WEEK-1-CHECKLIST.md)** — Day-by-day (15.5 hours) to ship RAG foundation
-- **[WEEK-2-CHECKLIST.md](WEEK-2-CHECKLIST.md)** — Day-by-day (15 hours) to production RAG
-- **[WEEK-3-CHECKLIST.md](WEEK-3-CHECKLIST.md)** — Day-by-day (15 hours) to evaluation & monitoring
-- **[WEEK-4-CHECKLIST.md](WEEK-4-CHECKLIST.md)** — Day-by-day (16 hours) to architecture & positioning
+### Architecture
+See [docs/architecture.md](docs/architecture.md) for system diagram, component descriptions, and data flow.
 
-## Stack
+### Trade-Offs
+See [docs/trade-offs.md](docs/trade-offs.md) for design decisions:
+- Why RAG over fine-tuning
+- Embedding model choice
+- Chunking strategy
+- Vector store approach
+- Prompt injection mitigation
 
-| Component | Choice | Reason |
-|-----------|--------|--------|
-| Language | Python 3.10+ | Industry standard; typing support |
-| API | FastAPI | Production-ready; async; auto OpenAPI docs |
-| RAG | LangChain | Widest ecosystem; clear abstractions |
-| LLM APIs | OpenAI + Claude | Cost-aware multi-model (Claude for reasoning, OpenAI for speed) |
-| Vector DB | Weaviate | Built-in reranking; production features; local dev |
-| Evaluation | MLflow + custom | Experiment tracking + domain-specific measures |
-| Monitoring | OpenTelemetry | Vendor-agnostic observability |
+---
 
-## Key Principles
+## Metrics (To Be Measured)
 
-1. **Architect-First**: Every deliverable explains *why*, not just *how*
-2. **Running Code**: Each week ends with deployable, measurable output
-3. **Evaluation-Driven**: No iteration without data
-4. **Single Repo**: All work lives here; clear weekly branches
-5. **Written Artifacts**: Diagrams + trade-off analysis + decision records
-6. **Public-Ready**: Code is clean; docs are clear; assume external audience
+- **Ingestion Latency**: Time to load + chunk + embed
+- **Retrieval Latency**: Time to embed query + similarity search
+- **Generation Latency**: Time for LLM to respond
+- **Total E2E Latency**: Full pipeline (ingest → retrieve → generate)
+- **Cost per Query**: Token usage × model pricing
 
-## Results (Target)
+---
 
-By end of Week 4:
+## Week 1 Deliverables (by Friday)
 
-- **Accuracy**: 85%+ on golden dataset (50 curated queries)
-- **Latency**: P99 < 1600ms
-- **Cost**: < $0.01/query
-- **Architecture**: Documented, defended, diagram included
-- **Fine-Tuning**: Comparison base vs fine-tuned (data-driven improvement)
-- **Public Proof**: Blog post + video + GitHub (portfolio-ready)
+- [x] Project structure initialized
+- [x] Python modules for ingestion, retrieval, generation
+- [x] FastAPI endpoints defined
+- [x] Tests written (unit + integration)
+- [ ] API running and tested
+- [ ] Architecture diagram finalized
+- [ ] Trade-offs documentation complete
+- [ ] Latency metrics measured
+- [ ] README with curl examples
 
-## Portfolio Value
+---
 
-This repo demonstrates to AI Architect interview panel:
+## Next Steps
 
-✅ **LLM System Design**: RAG vs fine-tuning decision framework  
-✅ **Production Thinking**: Monitoring, cost, SLO definition  
-✅ **Evaluation Rigor**: Golden dataset, metrics, data-driven iteration  
-✅ **Architecture Skills**: Design decisions, trade-off analysis, scaling concerns  
-✅ **Engineering Discipline**: Tests, logging, error handling, documentation  
+**Tuesday (Day 2)**: Ingestion module - test with real documents  
+**Wednesday (Day 3)**: Retrieval module - embedding & vector search  
+**Thursday (Day 4)**: Integration - full API endpoint testing  
+**Friday (Day 5)**: Documentation & checkpoint validation
 
-## How to Use This
+---
 
-### For Self-Study
-1. Read `CONSTITUTION.md` (understand principles)
-2. Start `WEEK-1-CHECKLIST.md` (follow day-by-day)
-3. Complete one week at a time (non-negotiable checkpoints)
-4. Don't skip documentation (it's part of the deliverable)
+## Resources
 
-### For Interviews
-- **System Design**: "Here's my architecture v2; here's why I chose Weaviate"
-- **Evaluation**: "My golden dataset has 50 queries; accuracy is 85%"
-- **Trade-Offs**: "Fine-tuning vs RAG? Depends on [knowledge | style | task specificity]"
-- **Production**: "P99 latency is 1600ms; cost is $0.005/query; I monitor both"
+**Documentation**:
+- [OpenAI Embedding Docs](https://platform.openai.com/docs/guides/embeddings)
+- [LangChain Prompt Templates](https://python.langchain.com/docs/modules/model_io/prompts/)
+- [FastAPI Docs](https://fastapi.tiangolo.com/)
 
-### For Your CV
-- Designed + implemented production-grade RAG system (retrieval, generation, caching)
-- Built evaluation framework measuring accuracy, latency, cost (golden dataset, metrics)
-- Implemented fine-tuning pipeline; compared base vs fine-tuned models
-- Achieved 85% accuracy, P99 < 1.6s latency, $0.005/query cost
-- System architecture documented with trade-off analysis
+**Concepts**:
+- [Vector Similarity Search](https://www.pinecone.io/learn/vector-database/)
+- [RAG Concepts](https://docs.llamaindex.ai/en/stable/getting_started/concepts/)
 
-## Progress Tracking
-
-Use `git` branches for each week:
-```bash
-git checkout -b week-1   # Day 1 → Friday checkpoint
-git checkout -b week-2   # Next cycle
-...
-```
-
-Each branch should have:
-- Working code
-- Tests (pytest)
-- README updates
-- New documentation
-- Metrics/measurements logged
-
-## Next Steps (After Week 4)
-
-1. **Polish**: Clean up code, add docstrings, finalize tests
-2. **Public**: Publish blog post + GitHub link
-3. **Applications**: Update CV, reach out to recruiters
-4. **Interviews**: Use this repo + system design explanations
+---
 
 ## License
 
 MIT
 
-## Author
-
-**Dung Duc Huynh (Kaka)** | he/him  
-[GitHub](https://github.com/jellydn) | [LinkedIn](https://www.linkedin.com/in/dung-huynh-duc/)
-
-Lifelong learner. Building in public. Learning in public.
-
 ---
 
-**Status**: Ready for Week 1 start  
-**Last Updated**: 2025-12-28  
-**Constitution Version**: 1.0
-
----
-
-## Philosophy
-
-This sprint embodies **#LearnInPublic** + **#BuildInPublic**:
-- Every decision is documented, not hidden
-- Progress is shared, not gatekept
-- Code + writing are public artifacts from day 1
-- The system itself becomes proof of capability
-
-Not just learning AI. Learning *how to architect* AI systems. In public.
-
+**Week 1 Status**: In Progress 🚀  
+**Last Updated**: 2025-12-29

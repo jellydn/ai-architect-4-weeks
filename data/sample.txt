@@ -1,0 +1,69 @@
+Retrieval-Augmented Generation (RAG)
+
+Retrieval-Augmented Generation (RAG) is a technique that combines document retrieval with language model generation. It works by first retrieving relevant documents based on a user query, then using those documents as context for the language model to generate an answer. This approach helps reduce hallucinations and provides up-to-date information without requiring fine-tuning of the model.
+
+How RAG Works
+
+The RAG pipeline consists of four main stages:
+
+1. Ingestion: Documents are loaded from files or databases and split into smaller chunks (typically 300-1000 tokens). Each chunk is then converted into a dense vector embedding using an embedding model like text-embedding-3-small from OpenAI.
+
+2. Chunking: The process of breaking documents into overlapping segments. Chunks typically have a size (e.g., 512 tokens) and overlap (e.g., 50 tokens) to ensure important information at boundaries isn't lost.
+
+3. Embedding: Text chunks are converted to vectors in high-dimensional space (e.g., 1536 dimensions). These embeddings capture semantic meaning - similar texts have similar vectors.
+
+4. Retrieval: When a user asks a question, the system embeds the query and searches the vector database using cosine similarity to find the most relevant chunks.
+
+5. Generation: The retrieved chunks are formatted as context and passed to an LLM (like GPT-3.5-turbo) along with the original query. The LLM generates an answer based on the provided context.
+
+Advantages of RAG
+
+- Reduced Hallucinations: By grounding responses in actual documents, RAG significantly reduces the tendency of LLMs to make up information.
+- Up-to-Date Information: Documents can be updated without retraining the model, allowing knowledge bases to stay current.
+- Cost-Effective: RAG is much cheaper than fine-tuning, which requires substantial computational resources and data preparation.
+- Transparency: Users can see which documents were used to generate answers, improving trust and auditability.
+- Flexibility: Different document sets can be swapped without changing the underlying model.
+
+When to Use RAG vs Fine-Tuning
+
+RAG is ideal for:
+- Q&A over proprietary documents
+- Information retrieval tasks
+- Tasks where knowledge changes frequently
+- Scenarios with limited training data
+
+Fine-tuning is better for:
+- Teaching a specific writing style
+- Domain-specific reasoning (mathematical problems, code generation)
+- Tasks where the base model lacks fundamental knowledge
+- When inference cost is not a constraint
+
+Embedding Models and Vector Similarity
+
+Text embeddings are dense vectors that capture semantic meaning. OpenAI's text-embedding-3-small produces 1536-dimensional vectors. Similarity between embeddings is typically measured using cosine similarity, which measures the angle between vectors rather than their magnitude. This is preferred over Euclidean distance for text because it focuses on direction (semantic meaning) rather than absolute magnitude.
+
+The cosine similarity formula: cos(θ) = (A·B) / (||A|| ||B||)
+
+A similarity of 1.0 indicates identical semantic meaning, while 0.0 indicates orthogonal (completely different) vectors.
+
+Challenges and Limitations
+
+Retrieval Quality: RAG is only as good as its retrieval stage. Poor document chunking or retrieval can degrade answer quality.
+
+Context Window: LLMs have finite context windows. If too many long documents are retrieved, not all can fit in the context.
+
+Latency: RAG systems are inherently multi-step (retrieve then generate), introducing latency. Optimization requires careful system design.
+
+Hallucination Still Possible: Even with context, LLMs can hallucinate details not in the provided documents. Evaluation is essential.
+
+Cost: Using embedding APIs and LLM APIs can accumulate costs, especially at scale. Caching strategies help mitigate this.
+
+The Future of RAG
+
+RAG is evolving rapidly. Emerging techniques include:
+- Multi-hop retrieval (chaining multiple retrievals for complex questions)
+- Reranking (retrieving many candidates, then reranking with a cross-encoder)
+- Hybrid search (combining keyword and semantic search)
+- Adaptive chunking (adjusting chunk size based on content type)
+
+As LLMs become more sophisticated and vector databases mature, RAG will remain a critical technique for building production-grade AI systems that combine the generative power of LLMs with the reliability of retrieval-based systems.

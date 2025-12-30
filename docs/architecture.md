@@ -1,98 +1,175 @@
-# RAG Architecture - Week 1
+# Week 1 RAG Architecture
 
-**Status**: In Progress (Complete by Friday)
+## System Overview
 
-## System Diagram
-
-```
-User Query
-    ↓
-[Ingestion Pipeline]
-    ├─ Load Document (TXT)
-    ├─ Chunk (512 tokens, 50 overlap)
-    ├─ Embed (OpenAI text-embedding-3-small)
-    └─ Store (In-memory vector store)
+```mermaid
+flowchart LR
+    subgraph Ingestion
+        A[Documents] --> B[DocumentIngester]
+        B --> C[Chunks]
+    end
     
-[Retrieval]
-    ├─ Embed Query
-    ├─ Cosine Similarity Search
-    └─ Return Top-3 Documents
+    subgraph Indexing
+        C --> D[RAGRetriever]
+        D --> E[Embeddings]
+        E --> F[(Vector Store)]
+    end
     
-[Generation]
-    ├─ Format Prompt with Context
-    ├─ Call LLM (gpt-3.5-turbo)
-    └─ Return Answer + Sources
+    subgraph Query
+        G[User Query] --> H[Embed Query]
+        H --> I[Similarity Search]
+        F --> I
+        I --> J[Top-K Chunks]
+    end
     
-Response
+    subgraph Generation
+        J --> K[RAGGenerator]
+        G --> K
+        K --> L[Answer]
+    end
+    
+    subgraph API
+        M[FastAPI] --> B
+        M --> H
+        L --> M
+    end
 ```
 
 ## Components
 
-### 1. DocumentIngester
-- **Purpose**: Load and chunk documents
-- **Input**: File path
-- **Output**: List of chunks with metadata
-- **Config**: `chunk_size=512`, `chunk_overlap=50`
+### DocumentIngester (`ingestion.py`)
 
-### 2. RAGRetriever
-- **Purpose**: Embed texts and retrieve similar documents
-- **Input**: Query string
-- **Output**: Ranked list of documents
-- **Similarity Metric**: Cosine similarity
-- **Caching**: Embeddings cached in memory
+Loads and chunks documents for the RAG pipeline.
 
-### 3. RAGGenerator
-- **Purpose**: Generate answers using context
-- **Input**: Query + retrieved context
-- **Output**: Answer string with sources
-- **Model**: gpt-3.5-turbo, temperature=0.7
-- **Prompt**: LangChain PromptTemplate
+| Method | Description |
+|--------|-------------|
+| `load_from_file(path)` | Load text content from file |
+| `chunk(documents)` | Split into overlapping chunks (512 chars, 50 overlap) |
+| `ingest(path)` | Full pipeline: load → chunk → structure with metadata |
 
-### 4. FastAPI Server
-- **Port**: 8000
-- **Endpoints**: 
-  - `POST /ingest` - Ingest documents
-  - `POST /query` - Query RAG system
-  - `GET /health` - Health check
+**Output**: List of `{id, text, source, chunk_index}`
+
+### RAGRetriever (`retrieval.py`)
+
+Manages embeddings and vector similarity search.
+
+| Method | Description |
+|--------|-------------|
+| `embed(texts)` | Generate embeddings via OpenAI API (with caching) |
+| `index(documents)` | Store documents and their embeddings |
+| `retrieve(query, top_k)` | Find most similar chunks using cosine similarity |
+
+**Vector Store**: In-memory dict (Week 1) → Weaviate (Week 2)
+
+### RAGGenerator (`generation.py`)
+
+Generates answers using retrieved context.
+
+| Method | Description |
+|--------|-------------|
+| `generate(query, context)` | Call LLM with formatted prompt |
+| `rag_answer(query, retriever)` | Full RAG: retrieve → generate → return |
+
+**Prompt Template**: Includes context grounding to reduce hallucination.
+
+### FastAPI Server (`main.py`)
+
+HTTP API exposing the RAG pipeline.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/ingest` | POST | Ingest documents |
+| `/query` | POST | Query the RAG system |
 
 ## Data Flow Example
 
 ```
-Input:  {"query": "What is RAG?", "top_k": 3}
-
-1. Ingestion Phase (first time):
-   - Load document from file
-   - Split into ~10 chunks
-   - Embed each chunk (API calls)
-   - Store in memory: [id, text, embedding]
-
-2. Retrieval Phase:
-   - Embed query (API call)
-   - Compute cosine similarity with all chunks
-   - Return top-3 by score
-   - Time: ~200ms
-
-3. Generation Phase:
-   - Format prompt: "Context: [chunk1]\n[chunk2]\n[chunk3]\n\nQuestion: What is RAG?"
-   - Call LLM (gpt-3.5-turbo)
-   - Parse response
-   - Time: ~2000ms
-
-Output: {"answer": "RAG is...", "sources": [...], "latency_ms": 2200}
+Query: "What is RAG?"
+    ↓
+1. Embed query → [0.12, -0.34, 0.56, ...] (1536 dims)
+    ↓
+2. Search vector store → Find top-3 similar chunks
+    ↓
+3. Retrieved chunks:
+   - Chunk 0: "RAG is a technique..." (score: 0.89)
+   - Chunk 1: "RAG benefits include..." (score: 0.82)
+   - Chunk 2: "How RAG Works..." (score: 0.78)
+    ↓
+4. Format prompt with context + query
+    ↓
+5. Call GPT-3.5-turbo
+    ↓
+6. Return: {answer, sources, latency_ms}
 ```
 
-## Metrics to Track
+## Entity Relationships
 
-- **Ingestion**: Time to load + chunk + embed (ms)
-- **Retrieval**: Time to embed query + search (ms)
-- **Generation**: Time to call LLM (ms)
-- **Total**: End-to-end latency (ms)
-- **Cost**: Tokens × model price
+```mermaid
+erDiagram
+    Document ||--o{ Chunk : contains
+    Chunk ||--|| Embedding : has
+    Query ||--|| Embedding : generates
+    Query ||--o{ RetrievalResult : produces
+    RetrievalResult }o--|| Chunk : references
+    Query ||--|| Answer : generates
+    Answer }o--o{ RetrievalResult : cites
+    
+    Document {
+        string path
+        string content
+        datetime ingested_at
+    }
+    
+    Chunk {
+        string id
+        string text
+        string source
+        int chunk_index
+    }
+    
+    Embedding {
+        float[] vector
+        int dimensions
+    }
+    
+    Query {
+        string text
+        int top_k
+    }
+    
+    RetrievalResult {
+        string chunk_id
+        float similarity_score
+    }
+    
+    Answer {
+        string text
+        string[] sources
+        float latency_ms
+    }
+```
 
-## Trade-Offs & Design Decisions
+## Latency Breakdown
 
-(To be filled in trade-offs.md)
+| Stage | Typical Latency | Notes |
+|-------|-----------------|-------|
+| Ingestion | <100ms per doc | Local file I/O + chunking |
+| Embedding | 50-200ms | OpenAI API call (cached after first) |
+| Retrieval | <10ms | In-memory cosine similarity |
+| Generation | 500-2000ms | LLM API call (GPT-3.5-turbo) |
+| **Total E2E** | **600-2500ms** | Query → Answer |
 
----
+## Configuration
 
-**Next**: Add example latency trace and update after implementation.
+Environment variables (`.env`):
+
+```bash
+OPENAI_API_KEY=sk-...         # Required
+EMBEDDING_MODEL=text-embedding-3-small
+LLM_MODEL=gpt-3.5-turbo
+LLM_TEMPERATURE=0.7
+CHUNK_SIZE=512
+CHUNK_OVERLAP=50
+TOP_K_RETRIEVAL=3
+```

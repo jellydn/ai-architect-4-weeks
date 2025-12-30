@@ -1,0 +1,322 @@
+{
+  "schemas": {
+    "IngestRequest": {
+      "type": "object",
+      "title": "IngestRequest",
+      "description": "Request to ingest documents into the RAG system",
+      "properties": {
+        "file_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "description": "List of absolute or relative paths to text documents"
+        }
+      },
+      "required": ["file_paths"],
+      "examples": [
+        {
+          "file_paths": ["data/sample.txt"]
+        },
+        {
+          "file_paths": ["data/sample.txt", "data/rag-guide.txt"]
+        }
+      ]
+    },
+
+    "IngestResponse": {
+      "type": "object",
+      "title": "IngestResponse",
+      "description": "Confirmation of document ingestion with statistics",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["success", "partial", "failure"],
+          "description": "Overall ingestion status"
+        },
+        "chunks_created": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of chunks created across all files"
+        },
+        "files_processed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of files successfully processed"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "filepath": {
+                "type": "string"
+              },
+              "error": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Any errors encountered during ingestion (optional)"
+        }
+      },
+      "required": ["status", "chunks_created", "files_processed"],
+      "examples": [
+        {
+          "status": "success",
+          "chunks_created": 12,
+          "files_processed": 1
+        },
+        {
+          "status": "partial",
+          "chunks_created": 8,
+          "files_processed": 1,
+          "errors": [
+            {
+              "filepath": "data/missing.txt",
+              "error": "File not found"
+            }
+          ]
+        }
+      ]
+    },
+
+    "QueryRequest": {
+      "type": "object",
+      "title": "QueryRequest",
+      "description": "Request to query the RAG system for answers",
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Natural language question"
+        },
+        "top_k": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3,
+          "description": "Number of documents to retrieve before generation"
+        }
+      },
+      "required": ["query"],
+      "examples": [
+        {
+          "query": "What is RAG?"
+        },
+        {
+          "query": "What is RAG and why is it useful?",
+          "top_k": 5
+        }
+      ]
+    },
+
+    "QueryResponse": {
+      "type": "object",
+      "title": "QueryResponse",
+      "description": "Answer generated from retrieved documents with full metadata",
+      "properties": {
+        "answer": {
+          "type": "string",
+          "description": "Generated answer from LLM"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of source files used to generate the answer"
+        },
+        "retrieved_chunks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/schemas/RetrievalResult"
+          },
+          "description": "Full details of retrieved documents (for transparency)"
+        },
+        "latency_ms": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total end-to-end latency in milliseconds (retrieval + generation)"
+        },
+        "model": {
+          "type": "string",
+          "description": "LLM model used for generation"
+        },
+        "tokens_used": {
+          "type": "object",
+          "properties": {
+            "prompt_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "completion_tokens": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "description": "Token usage for billing/monitoring"
+        }
+      },
+      "required": ["answer", "sources", "latency_ms"],
+      "examples": [
+        {
+          "answer": "RAG is retrieval-augmented generation, a technique that combines document retrieval with language model generation. It works by first retrieving relevant documents based on a user query, then using those documents as context for the language model to generate an answer.",
+          "sources": ["data/sample.txt"],
+          "retrieved_chunks": [
+            {
+              "chunk_id": "data/sample.txt:0",
+              "text": "Retrieval-Augmented Generation (RAG) is a technique...",
+              "source": "data/sample.txt",
+              "similarity_score": 0.87,
+              "rank": 1
+            }
+          ],
+          "latency_ms": 1690.5,
+          "model": "gpt-3.5-turbo",
+          "tokens_used": {
+            "prompt_tokens": 245,
+            "completion_tokens": 156
+          }
+        }
+      ]
+    },
+
+    "RetrievalResult": {
+      "type": "object",
+      "title": "RetrievalResult",
+      "description": "A single retrieved document chunk with ranking and similarity",
+      "properties": {
+        "chunk_id": {
+          "type": "string",
+          "description": "Unique identifier for the chunk (format: filepath:index)"
+        },
+        "text": {
+          "type": "string",
+          "description": "Chunk content"
+        },
+        "source": {
+          "type": "string",
+          "description": "Original document filepath"
+        },
+        "similarity_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Cosine similarity score to query (0=dissimilar, 1=identical)"
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Rank in retrieval results (1 = most similar)"
+        }
+      },
+      "required": ["chunk_id", "text", "source", "similarity_score", "rank"]
+    },
+
+    "ErrorResponse": {
+      "type": "object",
+      "title": "ErrorResponse",
+      "description": "Error response for failed requests",
+      "properties": {
+        "detail": {
+          "type": "string",
+          "description": "Error message describing what went wrong"
+        }
+      },
+      "required": ["detail"],
+      "examples": [
+        {
+          "detail": "No documents indexed. Call /ingest first."
+        },
+        {
+          "detail": "File not found: data/missing.txt"
+        }
+      ]
+    },
+
+    "HealthCheck": {
+      "type": "object",
+      "title": "HealthCheck",
+      "description": "Health check response for monitoring",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["ok"],
+          "description": "Service status"
+        },
+        "service": {
+          "type": "string",
+          "description": "Service identifier"
+        }
+      },
+      "required": ["status"],
+      "examples": [
+        {
+          "status": "ok",
+          "service": "rag-api"
+        }
+      ]
+    }
+  },
+
+  "endpoints": {
+    "GET /health": {
+      "summary": "Health check endpoint",
+      "description": "Returns service status for monitoring and load balancing",
+      "responses": {
+        "200": {
+          "description": "Service is healthy",
+          "schema": "$ref:#/schemas/HealthCheck"
+        }
+      }
+    },
+
+    "POST /ingest": {
+      "summary": "Ingest documents into RAG system",
+      "description": "Load text documents, chunk them, and index for retrieval. Overwrites existing index if called multiple times.",
+      "requestBody": {
+        "schema": "$ref:#/schemas/IngestRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Documents successfully ingested",
+          "schema": "$ref:#/schemas/IngestResponse"
+        },
+        "404": {
+          "description": "File not found",
+          "schema": "$ref:#/schemas/ErrorResponse"
+        },
+        "500": {
+          "description": "Internal server error",
+          "schema": "$ref:#/schemas/ErrorResponse"
+        }
+      }
+    },
+
+    "POST /query": {
+      "summary": "Query the RAG system",
+      "description": "Retrieve relevant documents and generate an answer using LLM",
+      "requestBody": {
+        "schema": "$ref:#/schemas/QueryRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Answer successfully generated",
+          "schema": "$ref:#/schemas/QueryResponse"
+        },
+        "400": {
+          "description": "Invalid request (e.g., no documents indexed)",
+          "schema": "$ref:#/schemas/ErrorResponse"
+        },
+        "500": {
+          "description": "Internal server error",
+          "schema": "$ref:#/schemas/ErrorResponse"
+        }
+      }
+    }
+  }
+}

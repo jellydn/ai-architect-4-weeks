@@ -1,0 +1,290 @@
+openapi: 3.0.0
+info:
+  title: AI Architect Week 1 RAG API
+  description: Retrieval-Augmented Generation system for Q&A over documents
+  version: 0.1.0
+  contact:
+    name: AI Architect
+    url: https://github.com/jellydn/ai-architect-4-weeks
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server (future)
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns service status for monitoring and load balancing
+      operationId: health_check
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                    description: Service status
+                  service:
+                    type: string
+                    description: Service identifier
+                required:
+                  - status
+              example:
+                status: ok
+                service: rag-api
+
+  /ingest:
+    post:
+      summary: Ingest documents into RAG system
+      description: Load text documents, chunk them, and index for retrieval. Overwrites existing index if called multiple times.
+      operationId: ingest_documents
+      tags:
+        - Ingestion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestRequest'
+      responses:
+        '200':
+          description: Documents successfully ingested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /query:
+    post:
+      summary: Query the RAG system
+      description: Retrieve relevant documents and generate an answer using LLM
+      operationId: query_rag
+      tags:
+        - Retrieval & Generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Answer successfully generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        '400':
+          description: Invalid request (e.g., no documents indexed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    IngestRequest:
+      type: object
+      description: Request to ingest documents into the RAG system
+      properties:
+        file_paths:
+          type: array
+          items:
+            type: string
+            format: path
+          description: List of absolute or relative paths to text documents
+          minItems: 1
+          maxItems: 100
+          example:
+            - data/sample.txt
+            - data/rag-guide.txt
+      required:
+        - file_paths
+
+    IngestResponse:
+      type: object
+      description: Confirmation of document ingestion
+      properties:
+        status:
+          type: string
+          enum: [success, partial, failure]
+          description: Overall ingestion status
+        chunks_created:
+          type: integer
+          minimum: 0
+          description: Total number of chunks created across all files
+        files_processed:
+          type: integer
+          minimum: 0
+          description: Number of files successfully processed
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              filepath:
+                type: string
+              error:
+                type: string
+          description: Any errors encountered during ingestion (optional)
+      required:
+        - status
+        - chunks_created
+        - files_processed
+      example:
+        status: success
+        chunks_created: 12
+        files_processed: 1
+
+    QueryRequest:
+      type: object
+      description: Request to query the RAG system
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Natural language question
+          example: What is RAG and why is it useful?
+        top_k:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 3
+          description: Number of documents to retrieve before generation
+      required:
+        - query
+
+    QueryResponse:
+      type: object
+      description: Answer generated from retrieved documents
+      properties:
+        answer:
+          type: string
+          description: Generated answer from LLM
+          example: RAG is retrieval-augmented generation, a technique that combines document retrieval with language model generation...
+        sources:
+          type: array
+          items:
+            type: string
+            format: path
+          description: List of source files used to generate the answer
+          example:
+            - data/sample.txt
+        retrieved_chunks:
+          type: array
+          items:
+            $ref: '#/components/schemas/RetrievalResult'
+          description: Full details of retrieved documents (for transparency)
+        latency_ms:
+          type: number
+          minimum: 0
+          format: double
+          description: Total end-to-end latency in milliseconds (retrieval + generation)
+          example: 1690.5
+        model:
+          type: string
+          description: LLM model used for generation
+          example: gpt-3.5-turbo
+        tokens_used:
+          type: object
+          properties:
+            prompt_tokens:
+              type: integer
+              minimum: 0
+            completion_tokens:
+              type: integer
+              minimum: 0
+          description: Token usage for billing/monitoring
+      required:
+        - answer
+        - sources
+        - latency_ms
+
+    RetrievalResult:
+      type: object
+      description: A single retrieved document chunk with ranking
+      properties:
+        chunk_id:
+          type: string
+          description: Unique identifier for the chunk
+          example: data/sample.txt:0
+        text:
+          type: string
+          description: Chunk content
+        source:
+          type: string
+          format: path
+          description: Original document filepath
+        similarity_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          format: double
+          description: Cosine similarity score to query (0=dissimilar, 1=identical)
+          example: 0.87
+        rank:
+          type: integer
+          minimum: 1
+          description: Rank in retrieval results (1 = most similar)
+      required:
+        - chunk_id
+        - text
+        - source
+        - similarity_score
+        - rank
+
+    ErrorResponse:
+      type: object
+      description: Error response for failed requests
+      properties:
+        detail:
+          type: string
+          description: Error message describing what went wrong
+          example: No documents indexed. Call /ingest first.
+      required:
+        - detail
+
+  parameters:
+    query_param:
+      name: query
+      in: query
+      required: true
+      schema:
+        type: string
+      description: Query string
+
+tags:
+  - name: System
+    description: System health and monitoring
+  - name: Ingestion
+    description: Document loading and indexing
+  - name: Retrieval & Generation
+    description: Query execution and answer generation

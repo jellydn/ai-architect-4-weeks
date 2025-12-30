@@ -25,15 +25,20 @@ class RAGRetriever:
     - Latency tracking
     """
 
-    def __init__(self, embedding_model: str = "text-embedding-3-small"):
+    def __init__(
+        self,
+        embedding_model: str = "text-embedding-3-small",
+        base_url: str | None = None,
+    ):
         """
         Initialize retriever with embedding model.
-
+        
         Args:
             embedding_model: OpenAI embedding model name
+            base_url: Optional custom API base URL (for Ollama, LM Studio, etc.)
         """
         self.embedding_model = embedding_model
-        self.client = OpenAI()
+        self.client = OpenAI(base_url=base_url) if base_url else OpenAI()
         self.documents: List[Dict] = []
         self.embeddings: List[np.ndarray] = []
         self.embedding_cache: Dict[str, List[float]] = {}

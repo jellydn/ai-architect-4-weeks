@@ -116,6 +116,7 @@ curl -X POST http://localhost:8000/query \
 
 - **[Architecture](docs/architecture.md)**: System diagram, components, data flow
 - **[Trade-offs](docs/trade-offs.md)**: Design decisions and rationale
+- **[Local LLM Guide](docs/local-llm.md)**: Run with Ollama, LM Studio, Groq (free)
 
 ---
 

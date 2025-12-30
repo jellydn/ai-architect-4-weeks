@@ -25,13 +25,20 @@ app = FastAPI(
 )
 
 # Global instances
+base_url = os.getenv("OPENAI_BASE_URL")  # For Ollama, LM Studio, etc.
+
 ingester = DocumentIngester(
-    chunk_size=int(os.getenv("CHUNK_SIZE", 512)), chunk_overlap=int(os.getenv("CHUNK_OVERLAP", 50))
+    chunk_size=int(os.getenv("CHUNK_SIZE", 512)),
+    chunk_overlap=int(os.getenv("CHUNK_OVERLAP", 50)),
 )
-retriever = RAGRetriever(embedding_model=os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"))
+retriever = RAGRetriever(
+    embedding_model=os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
+    base_url=base_url,
+)
 generator = RAGGenerator(
     model=os.getenv("LLM_MODEL", "gpt-3.5-turbo"),
     temperature=float(os.getenv("LLM_TEMPERATURE", 0.7)),
+    base_url=base_url,
 )
 
 

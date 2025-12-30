@@ -24,17 +24,23 @@ class RAGGenerator:
     - Latency and source tracking
     """
 
-    def __init__(self, model: str = "gpt-3.5-turbo", temperature: float = 0.7):
+    def __init__(
+        self,
+        model: str = "gpt-3.5-turbo",
+        temperature: float = 0.7,
+        base_url: str | None = None,
+    ):
         """
         Initialize generator with model and parameters.
-
+        
         Args:
-            model: OpenAI model name
+            model: OpenAI model name (or Ollama model like 'llama3.2')
             temperature: Sampling temperature (0-1)
+            base_url: Optional custom API base URL (for Ollama, LM Studio, etc.)
         """
         self.model = model
         self.temperature = temperature
-        self.client = OpenAI()
+        self.client = OpenAI(base_url=base_url) if base_url else OpenAI()
 
         # Define RAG prompt template
         self.prompt_template = PromptTemplate(

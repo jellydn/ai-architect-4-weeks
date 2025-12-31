@@ -23,6 +23,22 @@ class RAGRetriever:
     - In-memory vector store with caching
     - Cosine similarity search
     - Latency tracking
+
+    Example:
+        >>> from retrieval import RAGRetriever
+        >>> retriever = RAGRetriever(embedding_model="text-embedding-3-small")
+        >>> 
+        >>> # Index documents
+        >>> docs = [
+        ...     {"id": "1", "text": "RAG is great", "source": "doc.txt"},
+        ...     {"id": "2", "text": "Retrieval works well", "source": "doc.txt"}
+        ... ]
+        >>> retriever.index(docs)
+        >>> 
+        >>> # Retrieve similar documents
+        >>> results = retriever.retrieve("What is RAG?", top_k=2)
+        >>> for result in results:
+        ...     print(f"Score: {result['similarity_score']:.3f}, Text: {result['text']}")
     """
 
     def __init__(
@@ -52,6 +68,13 @@ class RAGRetriever:
 
         Returns:
             List of embedding vectors (lists of floats)
+
+        Example:
+            >>> embeddings = retriever.embed(["Hello world", "Machine learning"])
+            >>> len(embeddings)
+            2
+            >>> len(embeddings[0])  # embedding dimension
+            1536
         """
         start = time.time()
         embeddings = []
@@ -63,11 +86,16 @@ class RAGRetriever:
                 embeddings.append(self.embedding_cache[text])
                 cached_count += 1
             else:
-                # Call OpenAI
-                response = self.client.embeddings.create(model=self.embedding_model, input=text)
-                embedding = response.data[0].embedding
-                embeddings.append(embedding)
-                self.embedding_cache[text] = embedding
+                # Call OpenAI (handles rate limits via exponential backoff in OpenAI SDK)
+                # If rate limited (HTTP 429), SDK retries with exponential backoff
+                try:
+                    response = self.client.embeddings.create(model=self.embedding_model, input=text)
+                    embedding = response.data[0].embedding
+                    embeddings.append(embedding)
+                    self.embedding_cache[text] = embedding
+                except Exception as e:
+                    logger.error(f"Embedding error for text: {e}")
+                    raise
 
         elapsed = time.time() - start
         logger.info(
@@ -106,6 +134,13 @@ class RAGRetriever:
 
         Returns:
             List of dicts with text, similarity score, and metadata
+
+        Example:
+            >>> results = retriever.retrieve("What is embeddings?", top_k=2)
+            >>> results[0]["similarity_score"]
+            0.854
+            >>> results[0]["text"][:50]
+            'Embeddings are dense vectors...'
         """
         if not self.documents:
             logger.warning("No documents indexed. Call index() first.")

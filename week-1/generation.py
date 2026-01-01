@@ -22,6 +22,26 @@ class RAGGenerator:
     - Prompt templating to reduce hallucination
     - OpenAI API integration
     - Latency and source tracking
+
+    Example:
+        >>> from generation import RAGGenerator
+        >>> from retrieval import RAGRetriever
+        >>> 
+        >>> generator = RAGGenerator(model="gpt-3.5-turbo")
+        >>> retriever = RAGRetriever()
+        >>> 
+        >>> # Index documents first
+        >>> docs = [{"id": "1", "text": "RAG is great", "source": "doc.txt"}]
+        >>> retriever.index(docs)
+        >>> 
+        >>> # Generate answer with context
+        >>> result = generator.rag_answer("What is RAG?", retriever)
+        >>> result["answer"]
+        'RAG combines retrieval and generation...'
+        >>> result["sources"]
+        ['doc.txt']
+        >>> result["latency_ms"]
+        1250.5
     """
 
     def __init__(
@@ -43,6 +63,8 @@ class RAGGenerator:
         self.client = OpenAI(base_url=base_url) if base_url else OpenAI()
 
         # Define RAG prompt template
+        # Hallucination Mitigation: Explicit instruction to ground answers in provided context
+        # This reduces LLM's tendency to fabricate information not in documents
         self.prompt_template = PromptTemplate(
             input_variables=["context", "query"],
             template="""You are a helpful assistant answering questions based on provided documents.
@@ -100,7 +122,18 @@ Answer based on the context above. If the context doesn't contain relevant infor
             retriever: RAGRetriever instance
 
         Returns:
-            Dict with answer, sources, and latency
+            Dict with keys:
+            - answer (str): Generated answer grounded in context
+            - sources (List[str]): List of document sources used
+            - latency_ms (float): Total time in milliseconds
+
+        Example:
+            >>> result = generator.rag_answer("How does RAG work?", retriever)
+            >>> assert "answer" in result
+            >>> assert "sources" in result
+            >>> assert "latency_ms" in result
+            >>> result["latency_ms"] < 3000  # Should complete in <3s
+            True
         """
         start = time.time()
 

@@ -118,6 +118,8 @@ async def query_rag(request: QueryRequest):
             answer=result["answer"], sources=result["sources"], latency_ms=result["latency_ms"]
         )
 
+    except HTTPException:
+        raise  # Let HTTPException pass through unchanged
     except Exception as e:
         logger.error(f"Query error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

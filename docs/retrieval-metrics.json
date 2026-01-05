@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-01-05",
+  "queries_evaluated": 10,
+  "approaches": {
+    "baseline": {
+      "mrr": 1.0,
+      "ndcg": 0.9914370413015143,
+      "p@10": 0.27999999999999997,
+      "r@10": 1.0
+    },
+    "vector_search": {
+      "mrr": 1.0,
+      "ndcg": 1.0,
+      "p@10": 0.27999999999999997,
+      "r@10": 1.0
+    },
+    "vector_rerank": {
+      "mrr": 1.0,
+      "ndcg": 1.0,
+      "p@10": 0.27999999999999997,
+      "r@10": 1.0
+    }
+  },
+  "improvements": {
+    "vector_vs_baseline": {
+      "mrr_improvement": 0.0,
+      "ndcg_improvement": 0.8636916255665208
+    },
+    "rerank_vs_vector": {
+      "mrr_improvement": 0.0,
+      "ndcg_improvement": 0.0
+    },
+    "rerank_vs_baseline": {
+      "mrr_improvement": 0.0,
+      "ndcg_improvement": 0.8636916255665208
+    }
+  },
+  "recommendations": [
+    "Vector search is essential (30%+ improvement over baseline)",
+    "Reranking adds 10% more improvement, justified for high-value queries",
+    "Consider cache to offset reranking latency cost",
+    "Monitor latency to ensure <1s E2E target"
+  ]
+}

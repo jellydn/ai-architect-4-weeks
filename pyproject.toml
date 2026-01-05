@@ -37,10 +37,10 @@ Repository = "https://github.com/jellydn/ai-architect-4-weeks"
 Issues = "https://github.com/jellydn/ai-architect-4-weeks/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["week-1"]
+packages = ["week-1", "week-2"]
 
 [tool.pytest.ini_options]
-testpaths = ["week-1"]
+testpaths = ["week-1", "week-2"]
 python_files = ["test_*.py"]
 
 [tool.ruff]

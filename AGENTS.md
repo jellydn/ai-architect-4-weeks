@@ -27,3 +27,10 @@ You MUST read the overview resource to understand the complete workflow. The inf
 </CRITICAL_INSTRUCTION>
 
 <!-- BACKLOG.MD MCP GUIDELINES END -->
+
+## Active Technologies
+- Python 3.11 (modern async/typing) + FastAPI, uvicorn, LangChain, OpenAI Python client, numpy, pydantic (001-week1-rag-completion)
+- In-memory vector store (Week 1); escalates to Weaviate Week 2 (001-week1-rag-completion)
+
+## Recent Changes
+- 001-week1-rag-completion: Added Python 3.11 (modern async/typing) + FastAPI, uvicorn, LangChain, OpenAI Python client, numpy, pydantic
